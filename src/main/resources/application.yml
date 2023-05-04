@@ -4,12 +4,26 @@ server:
 uri:
   api:
     clientes: http://localhost:8080
+    clientes2: http://localhost:8080
     cuentas: https://pokeapi.co
 
 
 spring:
+  application:
+    name: curso-spring-gateway
   cloud:
     gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter:
+              replenishRate: 10
+              burstCapacity: 20
+              requestedTokens: 1
+        - name: CircuitBreaker
+          args:
+            name: clientsService
+            fallbackUri: forward:/service-fallback
       routes:
         - id: all_clientes
           uri: http://localhost:8080
@@ -28,3 +42,15 @@ spring:
             - RewritePath=/promerica/clientes-por-id/, /v1/api/cliente/
             - AddRequestHeader=X-GATEWAY-REQUEST-HEADER,GATEWAY-SOLITUD
             - AddResponseHeader=X-GATEYWAY-RESPONSE-HEADER,GATEWAY_RESPONSE
+
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
+
+# Trace every action
+management:
+  tracing:
+    sampling:
+      probability: 1.0
